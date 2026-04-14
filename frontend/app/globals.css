@@ -1,0 +1,167 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Sri Caargo ERP Color System - Logistics Theme (Maroon/Burgundy) */
+:root {
+  /* Light background for professional appearance */
+  --background: #ffffff;
+  --foreground: #2d1b1b;
+  
+  /* Card styling for data containers */
+  --card: #fef5f5;
+  --card-foreground: #2d1b1b;
+  
+  /* Popover/Dialog styling */
+  --popover: #ffffff;
+  --popover-foreground: #2d1b1b;
+  
+  /* Primary: Sri Caargo Maroon for main actions and CTAs */
+  --primary: #8B1538;
+  --primary-foreground: #ffffff;
+  
+  /* Secondary: Brown for secondary actions */
+  --secondary: #A52A2A;
+  --secondary-foreground: #ffffff;
+  
+  /* Muted for disabled/inactive states */
+  --muted: #f5e6e6;
+  --muted-foreground: #7d6565;
+  
+  /* Accent: Crimson red for highlights and focus */
+  --accent: #DC143C;
+  --accent-foreground: #ffffff;
+  
+  /* Destructive: Deep red for errors, holds, cancellations */
+  --destructive: #B22222;
+  --destructive-foreground: #ffffff;
+  
+  /* Borders - light maroon for clean separation */
+  --border: #e8d0d0;
+  --input: #ffffff;
+  --ring: #8B1538;
+  
+  /* Chart colors for analytics - Warm Professional Colors */
+  --chart-1: #8B1538;
+  --chart-2: #DC143C;
+  --chart-3: #2e7d32;
+  --chart-4: #f57c00;
+  --chart-5: #A52A2A;
+  
+  /* Radius for rounded corners */
+  --radius: 0.5rem;
+  
+  /* Sidebar styling - clean light theme with maroon accents */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #2d1b1b;
+  --sidebar-primary: #8B1538;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fef5f5;
+  --sidebar-accent-foreground: #8B1538;
+  --sidebar-border: #e8d0d0;
+  --sidebar-ring: #8B1538;
+  
+  /* Status colors for logistics operations */
+  --status-delivered: #2e7d32;
+  --status-in-transit: #1976d2;
+  --status-pending: #f57c00;
+  --status-on-hold: #d32f2f;
+  --status-exception: #c62828;
+}
+
+.dark {
+  /* Dark mode variant for Google/Microsoft style */
+  --background: #121212;
+  --foreground: #f3f3f3;
+  --card: #1e1e1e;
+  --card-foreground: #f3f3f3;
+  --popover: #1e1e1e;
+  --popover-foreground: #f3f3f3;
+  --primary: #8ab4f8;
+  --primary-foreground: #121212;
+  --secondary: #9aa0a6;
+  --secondary-foreground: #121212;
+  --muted: #424242;
+  --muted-foreground: #9aa0a6;
+  --accent: #8ab4f8;
+  --accent-foreground: #121212;
+  --destructive: #f28482;
+  --destructive-foreground: #121212;
+  --border: #424242;
+  --input: #1e1e1e;
+  --ring: #8ab4f8;
+  --chart-1: #8ab4f8;
+  --chart-2: #5b9ef5;
+  --chart-3: #81c995;
+  --chart-4: #fcc934;
+  --chart-5: #f28482;
+  --sidebar: #1e1e1e;
+  --sidebar-foreground: #f3f3f3;
+  --sidebar-primary: #8ab4f8;
+  --sidebar-primary-foreground: #121212;
+  --sidebar-accent: #9aa0a6;
+  --sidebar-accent-foreground: #f3f3f3;
+  --sidebar-border: #424242;
+  --sidebar-ring: #8ab4f8;
+  --status-delivered: #81c995;
+  --status-in-transit: #8ab4f8;
+  --status-pending: #fcc934;
+  --status-on-hold: #f28482;
+  --status-exception: #f28482;
+}
+
+@theme inline {
+  --font-sans: 'Geist', 'Geist Fallback';
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-status-delivered: var(--status-delivered);
+  --color-status-in-transit: var(--status-in-transit);
+  --color-status-pending: var(--status-pending);
+  --color-status-on-hold: var(--status-on-hold);
+  --color-status-exception: var(--status-exception);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
