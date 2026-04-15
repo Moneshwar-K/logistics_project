@@ -38,7 +38,7 @@ router.post('/', async (req: Request, res: Response) => {
         const { Shipment } = await import('../models');
         const shipment = await Shipment.findOne({ hawb: hawbMatch[0].toUpperCase() }).populate('shipper_id consignee_id').lean();
         if (shipment) {
-          shipmentContext = `\n[Shipment Data Found: HAWB: ${shipment.hawb}, Status: ${shipment.status.toUpperCase()}, Consignee: ${shipment.consignee_id?.name || 'N/A'}, Destination: ${shipment.destination_city}, Items: ${shipment.total_cartons} pcs]`;
+          shipmentContext = `\n[Shipment Data Found: HAWB: ${shipment.hawb}, Status: ${shipment.status.toUpperCase()}, Consignee: ${(shipment.consignee_id as any)?.name || 'N/A'}, Destination: ${shipment.destination_city}, Items: ${shipment.total_cartons} pcs]`;
         }
       } catch (e) {
         console.error('Shipment lookup error:', e);

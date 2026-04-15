@@ -3,7 +3,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IInvoice extends Document {
   invoice_number: string;
   bill_number?: string; // Manual/Official bill number
-  shipment_id: mongoose.Types.ObjectId;
+  shipment_id?: mongoose.Types.ObjectId;
+  shipment_ids: mongoose.Types.ObjectId[];
   billed_party_id: mongoose.Types.ObjectId;
   branch_id?: mongoose.Types.ObjectId;
   invoice_date: Date;

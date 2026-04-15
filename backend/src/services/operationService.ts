@@ -23,6 +23,7 @@ const STATUS_TRANSITIONS: Record<ShipmentStatus, ShipmentStatus[]> = {
   on_hold: ['in_transit', 'received_at_destination', 'pending', 'exception'],
   exception: ['in_transit', 'on_hold', 'pending'],
   cancelled: [],
+  duty_billed: [],
 };
 
 function isValidStatusTransition(current: ShipmentStatus, next: ShipmentStatus): boolean {

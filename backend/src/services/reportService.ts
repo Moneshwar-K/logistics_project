@@ -32,7 +32,7 @@ export const reportService = {
     ]);
 
     // 2. Total Metrics
-    const { Branch, Client } = (await import('../models')); // Use dynamic import to avoid circular dep if any
+    const { Branch } = (await import('../models')); // Use dynamic import to avoid circular dep if any
     const [totalShipments, totalInvoices, totalClients, totalBranches] = await Promise.all([
       Shipment.countDocuments(query),
       Invoice.countDocuments(user.role === 'customer' ? { billed_party_id: query.$or[0].shipper_id } : (query.branch_id ? { branch_id: query.branch_id } : {})),
