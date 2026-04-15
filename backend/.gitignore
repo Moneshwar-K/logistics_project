@@ -3,10 +3,10 @@
 # ==============================
 node_modules/
 
-# Lock files (keep ONE if needed)
-package-lock.json
+# Lock files
 yarn.lock
 pnpm-lock.yaml
+# Note: package-lock.json is committed so Render uses npm (not yarn)
 
 # ==============================
 # 🚀 Next.js / Frontend
