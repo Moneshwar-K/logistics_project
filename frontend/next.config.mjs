@@ -13,8 +13,7 @@ const nextConfig = {
     minimumCacheTTL: 60,
   },
 
-  // Standalone output for Docker / production deployment
-  output: 'standalone',
+  // NOTE: 'standalone' output removed - incompatible with Vercel (use for Docker only)
 
   // Hide Next.js version fingerprint
   poweredByHeader: false,
