@@ -52,21 +52,38 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      systemInstruction: SYSTEM_PROMPT + shipmentContext,
-    });
+    const modelsToTry = ['gemini-flash-latest', 'gemini-2.5-flash'];
+    let reply = "I'm having trouble connecting right now. Please try again in a moment.";
+    let success = false;
 
-    const chat = model.startChat({
-      history: history || [],
-      generationConfig: {
-        maxOutputTokens: 500,
-        temperature: 0.7,
-      },
-    });
+    for (const modelName of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction: SYSTEM_PROMPT + shipmentContext,
+        });
 
-    const result = await chat.sendMessage(message);
-    const reply = result.response.text();
+        const chat = model.startChat({
+          history: history || [],
+          generationConfig: {
+            maxOutputTokens: 500,
+            temperature: 0.7,
+          },
+        });
+
+        const result = await chat.sendMessage(message);
+        reply = result.response.text();
+        success = true;
+        break; // Success, break out of loop
+      } catch (err: any) {
+        console.warn(`Model ${modelName} failed:`, err?.message || String(err));
+        // Continue to the next model in the loop
+      }
+    }
+
+    if (!success) {
+      throw new Error('All fallback models failed to generate content');
+    }
 
     res.json({ success: true, reply });
   } catch (error: any) {
