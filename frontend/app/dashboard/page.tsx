@@ -59,7 +59,7 @@ export default function DashboardPage() {
           setError('Failed to fetch dashboard data');
         }
       } catch (err: any) {
-        console.error('Dashboard fetch error:', err);
+        console.warn('Dashboard fetch error:', err.message || err);
         setError(err.response?.data?.error || err.message || 'Failed to communicate with server');
       } finally {
         setLoading(false);

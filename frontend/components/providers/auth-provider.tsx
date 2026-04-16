@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch current user:', error);
+        console.warn('Session expired or invalid token. User will be redirected to login.');
         apiService.logout();
       } finally {
         setLoading(false);
