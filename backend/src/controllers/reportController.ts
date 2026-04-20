@@ -76,4 +76,19 @@ export const reportController = {
       next(error);
     }
   },
+
+  async getBranchRevenue(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const filters = req.query;
+      const data = await reportService.getBranchRevenueReport(filters as any);
+
+      res.json({
+        success: true,
+        data,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

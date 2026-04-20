@@ -304,4 +304,88 @@ export const reportService = {
       avg_delivery_days: item.avg_delivery_days || 0,
     }));
   },
+
+  async getBranchRevenueReport(filters: {
+    date_from?: string;
+    date_to?: string;
+    year?: string;
+  }) {
+    const { Branch } = await import('../models');
+
+    const matchStage: any = {};
+
+    // Apply year filter — default to current year
+    const year = filters.year ? parseInt(filters.year) : new Date().getFullYear();
+    const startOfYear = new Date(year, 0, 1);
+    const endOfYear = new Date(year + 1, 0, 1);
+    matchStage.invoice_date = { $gte: startOfYear, $lt: endOfYear };
+
+    // Override with explicit date range if provided
+    if (filters.date_from || filters.date_to) {
+      matchStage.invoice_date = {};
+      if (filters.date_from) matchStage.invoice_date.$gte = new Date(filters.date_from);
+      if (filters.date_to) matchStage.invoice_date.$lte = new Date(filters.date_to);
+    }
+
+    // Aggregate: group by branch + month
+    const raw = await Invoice.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: {
+            branch_id: '$branch_id',
+            month: { $month: '$invoice_date' },
+            year: { $year: '$invoice_date' },
+          },
+          total_revenue: { $sum: '$total_amount' },
+          paid_revenue: { $sum: '$paid_amount' },
+          invoice_count: { $sum: 1 },
+        },
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1, total_revenue: -1 } },
+      {
+        $lookup: {
+          from: 'branches',
+          localField: '_id.branch_id',
+          foreignField: '_id',
+          as: 'branch',
+        },
+      },
+      { $unwind: { path: '$branch', preserveNullAndEmpty: true } },
+    ]);
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // Gather all branches
+    const branches = await Branch.find({}, 'name branch_code').lean();
+
+    // Build a month-keyed structure: { 'Jan 2026': { branchName: revenue, ... } }
+    const monthlyMap: Record<string, Record<string, number>> = {};
+    const branchSet = new Set<string>();
+
+    raw.forEach((item) => {
+      const monthLabel = `${monthNames[item._id.month - 1]} ${item._id.year}`;
+      const branchName = item.branch?.name || 'Unassigned';
+      branchSet.add(branchName);
+      if (!monthlyMap[monthLabel]) monthlyMap[monthLabel] = {};
+      monthlyMap[monthLabel][branchName] = (monthlyMap[monthLabel][branchName] || 0) + item.total_revenue;
+    });
+
+    // Also compute per-branch totals for ranking
+    const branchTotals: Record<string, number> = {};
+    raw.forEach((item) => {
+      const branchName = item.branch?.name || 'Unassigned';
+      branchTotals[branchName] = (branchTotals[branchName] || 0) + item.total_revenue;
+    });
+
+    const sortedBranches = [...branchSet].sort((a, b) => (branchTotals[b] || 0) - (branchTotals[a] || 0));
+
+    return {
+      months: Object.keys(monthlyMap),
+      branches: sortedBranches,
+      data: monthlyMap,
+      branch_totals: branchTotals,
+      year,
+    };
+  },
 };

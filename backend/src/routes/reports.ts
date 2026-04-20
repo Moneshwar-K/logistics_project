@@ -42,5 +42,12 @@ router.get(
   reportController.getPerformanceReports
 );
 
+// Get branch revenue analytics by month (admin, finance)
+router.get(
+  '/branch-revenue',
+  authorizeStaff('admin', 'finance'),
+  reportController.getBranchRevenue
+);
+
 export default router;
 

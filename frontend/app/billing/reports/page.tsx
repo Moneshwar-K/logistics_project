@@ -16,10 +16,12 @@ interface InvoiceRow {
   invoice_number: string;
   hawb?: string;
   client_name?: string;
+  billed_party_id?: any;
   total_amount: number;
   paid_amount?: number;
   balance_amount?: number;
-  status: string;
+  payment_status: string;
+  status?: string;
   created_at: string;
   shipment_id?: any;
 }
@@ -32,7 +34,15 @@ interface BillingMetrics {
   average_invoice_value: number;
 }
 
-type ReportTab = 'consolidated' | 'invoices' | 'monthly' | 'monthly_gst';
+type ReportTab = 'consolidated' | 'invoices' | 'monthly' | 'monthly_gst' | 'branch_revenue';
+
+interface BranchRevenueData {
+  months: string[];
+  branches: string[];
+  data: Record<string, Record<string, number>>;
+  branch_totals: Record<string, number>;
+  year: number;
+}
 
 export default function BillingReportsPage() {
   const [metrics, setMetrics] = useState<BillingMetrics | null>(null);
@@ -43,6 +53,9 @@ export default function BillingReportsPage() {
   const [clientFilter, setClientFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ReportTab>('consolidated');
+  const [branchRevenue, setBranchRevenue] = useState<BranchRevenueData | null>(null);
+  const [branchYear, setBranchYear] = useState(new Date().getFullYear().toString());
+  const [branchLoading, setBranchLoading] = useState(false);
 
   const getHeaders = () => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
@@ -139,18 +152,39 @@ export default function BillingReportsPage() {
   };
 
   const kpiCards = metrics ? [
-    { title: 'Total Revenue', value: `₹${metrics.total_revenue.toLocaleString()}`, icon: <DollarSign className="w-6 h-6 text-emerald-600" />, bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' },
+    { title: 'Total Revenue', value: `₹${metrics.total_revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: <DollarSign className="w-6 h-6 text-emerald-600" />, bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' },
     { title: 'Total Invoices', value: metrics.total_invoices.toString(), icon: <FileText className="w-6 h-6 text-blue-600" />, bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800' },
-    { title: 'Paid Amount', value: `₹${metrics.paid_amount.toLocaleString()}`, icon: <TrendingUp className="w-6 h-6 text-green-600" />, bg: 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' },
-    { title: 'Pending', value: `₹${metrics.pending_amount.toLocaleString()}`, icon: <DollarSign className="w-6 h-6 text-amber-600" />, bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800' },
+    { title: 'Paid Amount', value: `₹${metrics.paid_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: <TrendingUp className="w-6 h-6 text-green-600" />, bg: 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' },
+    { title: 'Pending', value: `₹${metrics.pending_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: <DollarSign className="w-6 h-6 text-amber-600" />, bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800' },
     { title: 'Avg Invoice', value: `₹${metrics.average_invoice_value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, icon: <BarChart3 className="w-6 h-6 text-purple-600" />, bg: 'bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800' },
   ] : [];
+
+  const fetchBranchRevenue = useCallback(async (year: string) => {
+    setBranchLoading(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const headers = { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) };
+      const res = await fetch(`${API_BASE}/reports/branch-revenue?year=${year}`, { headers });
+      if (!res.ok) throw new Error('Failed');
+      const json = await res.json();
+      setBranchRevenue(json.data);
+    } catch {
+      setBranchRevenue(null);
+    } finally {
+      setBranchLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'branch_revenue') fetchBranchRevenue(branchYear);
+  }, [activeTab, branchYear, fetchBranchRevenue]);
 
   const tabs: { id: ReportTab; label: string }[] = [
     { id: 'consolidated', label: 'Consolidated Report' },
     { id: 'invoices', label: 'Invoice Bills' },
     { id: 'monthly', label: 'Monthly Summary' },
     { id: 'monthly_gst', label: 'Monthly GST Report' },
+    { id: 'branch_revenue', label: '📊 Branch Revenue' },
   ];
 
   return (
@@ -258,11 +292,20 @@ export default function BillingReportsPage() {
                             <td className="px-4 py-2.5 text-muted-foreground">{i + 1}</td>
                             <td className="px-4 py-2.5 font-medium">{inv.invoice_number || '—'}</td>
                             <td className="px-4 py-2.5 font-mono text-primary">{inv.hawb || inv.shipment_id?.hawb || '—'}</td>
-                            <td className="px-4 py-2.5">{inv.client_name || inv.shipment_id?.shipper_id?.name || '—'}</td>
-                            <td className="px-4 py-2.5 text-right font-medium">₹{(inv.total_amount || 0).toLocaleString()}</td>
-                            <td className="px-4 py-2.5 text-right text-green-600">₹{(inv.paid_amount || 0).toLocaleString()}</td>
-                            <td className="px-4 py-2.5 text-right text-amber-600">₹{((inv.balance_amount || (inv.total_amount - (inv.paid_amount || 0))) || 0).toLocaleString()}</td>
-                            <td className="px-4 py-2.5"><span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${inv.status === 'paid' ? 'bg-green-100 text-green-700' : inv.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{inv.status}</span></td>
+                            <td className="px-4 py-2.5">{inv.billed_party_id?.name || inv.client_name || inv.shipment_id?.shipper_id?.name || '—'}</td>
+                            <td className="px-4 py-2.5 text-right font-medium">₹{(inv.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="px-4 py-2.5 text-right text-green-600">₹{(inv.paid_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="px-4 py-2.5 text-right text-amber-600">₹{((inv.balance_amount || (inv.total_amount - (inv.paid_amount || 0))) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="px-4 py-2.5">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                                (inv.payment_status || inv.status) === 'paid' ? 'bg-green-100 text-green-700' : 
+                                (inv.payment_status || inv.status) === 'partial' ? 'bg-blue-100 text-blue-700' :
+                                (inv.payment_status || inv.status) === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {inv.payment_status || inv.status}
+                              </span>
+                            </td>
                             <td className="px-4 py-2.5 text-muted-foreground">{new Date(inv.created_at).toLocaleDateString('en-IN')}</td>
                           </tr>
                         ))
@@ -272,9 +315,9 @@ export default function BillingReportsPage() {
                       <tfoot>
                         <tr className="bg-muted/30 font-semibold border-t-2 border-border">
                           <td colSpan={4} className="px-4 py-3">TOTALS</td>
-                          <td className="px-4 py-3 text-right">₹{filteredInvoices.reduce((s, inv) => s + (inv.total_amount || 0), 0).toLocaleString()}</td>
-                          <td className="px-4 py-3 text-right text-green-600">₹{filteredInvoices.reduce((s, inv) => s + (inv.paid_amount || 0), 0).toLocaleString()}</td>
-                          <td className="px-4 py-3 text-right text-amber-600">₹{filteredInvoices.reduce((s, inv) => s + ((inv.balance_amount || (inv.total_amount - (inv.paid_amount || 0))) || 0), 0).toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right">₹{filteredInvoices.reduce((s, inv) => s + (inv.total_amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                          <td className="px-4 py-3 text-right text-green-600">₹{filteredInvoices.reduce((s, inv) => s + (inv.paid_amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                          <td className="px-4 py-3 text-right text-amber-600">₹{filteredInvoices.reduce((s, inv) => s + ((inv.balance_amount || (inv.total_amount - (inv.paid_amount || 0))) || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                           <td colSpan={2} className="px-4 py-3"></td>
                         </tr>
                       </tfoot>
@@ -397,9 +440,9 @@ export default function BillingReportsPage() {
                               <td className="px-3 py-2.5 text-muted-foreground">{new Date(inv.created_at).toLocaleDateString('en-IN')}</td>
                               <td className="px-3 py-2.5 font-mono text-xs">{(inv as any).gstin || '—'}</td>
                               <td className="px-3 py-2.5 font-medium">{inv.invoice_number || '—'}</td>
-                              <td className="px-3 py-2.5">{inv.client_name || inv.shipment_id?.shipper_id?.name || '—'}</td>
-                              <td className="px-3 py-2.5 text-right font-medium">₹{basicAmount.toLocaleString()}</td>
-                              <td className="px-3 py-2.5 text-right">₹{cgst.toLocaleString()}</td>
+                              <td className="px-3 py-2.5">{inv.billed_party_id?.name || inv.client_name || inv.shipment_id?.shipper_id?.name || '—'}</td>
+                              <td className="px-3 py-2.5 text-right font-medium">₹{basicAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                              <td className="px-3 py-2.5 text-right">₹{cgst.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                               <td className="px-3 py-2.5 text-right">₹{sgst.toLocaleString()}</td>
                               <td className="px-3 py-2.5 text-right">₹{igst.toLocaleString()}</td>
                               <td className="px-3 py-2.5 text-right font-bold">₹{total.toLocaleString()}</td>
@@ -423,6 +466,129 @@ export default function BillingReportsPage() {
                   </table>
                 </div>
               </Card>
+            )}
+            {/* Branch Revenue Tab */}
+            {activeTab === 'branch_revenue' && (
+              <div className="space-y-4">
+                {/* Controls */}
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-muted-foreground">Year:</label>
+                  <select
+                    value={branchYear}
+                    onChange={e => setBranchYear(e.target.value)}
+                    className="h-9 px-3 rounded-md border border-border bg-background text-foreground text-sm"
+                  >
+                    {[0,1,2].map(offset => {
+                      const y = (new Date().getFullYear() - offset).toString();
+                      return <option key={y} value={y}>{y}</option>;
+                    })}
+                  </select>
+                  <button onClick={() => fetchBranchRevenue(branchYear)} className="px-3 py-2 text-sm bg-muted text-foreground rounded-lg hover:bg-muted/80 flex items-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                  </button>
+                </div>
+
+                {branchLoading ? (
+                  <div className="flex h-40 items-center justify-center text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading branch analytics...</div>
+                ) : !branchRevenue || branchRevenue.branches.length === 0 ? (
+                  <Card className="p-12 text-center border-border">
+                    <BarChart3 className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-muted-foreground">No revenue data found for {branchYear}.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Generate invoices and assign them to branches to see analytics.</p>
+                  </Card>
+                ) : (
+                  <>
+                    {/* Branch Total Summary Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {branchRevenue.branches.slice(0, 8).map((branch, i) => {
+                        const total = branchRevenue.branch_totals[branch] || 0;
+                        const grandTotal = Object.values(branchRevenue.branch_totals).reduce((s, v) => s + v, 0);
+                        const pct = grandTotal > 0 ? (total / grandTotal) * 100 : 0;
+                        const colors = ['from-blue-500 to-indigo-600','from-emerald-500 to-teal-600','from-purple-500 to-violet-600','from-amber-500 to-orange-600','from-rose-500 to-pink-600','from-cyan-500 to-sky-600','from-lime-500 to-green-600','from-fuchsia-500 to-pink-600'];
+                        return (
+                          <Card key={branch} className="p-4 border-border overflow-hidden relative">
+                            <div className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-b ${colors[i % colors.length]}`} />
+                            <div className="pl-3">
+                              <div className="flex items-start justify-between mb-1">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide truncate pr-2">{branch}</p>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white bg-gradient-to-r ${colors[i % colors.length]}`}>#{i+1}</span>
+                              </div>
+                              <p className="text-lg font-bold text-foreground">₹{total.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                              <div className="mt-2">
+                                <div className="flex justify-between text-[10px] text-muted-foreground mb-0.5">
+                                  <span>Share</span><span>{pct.toFixed(1)}%</span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-1.5">
+                                  <div className={`h-1.5 rounded-full bg-gradient-to-r ${colors[i % colors.length]} transition-all duration-700`} style={{ width: `${Math.min(pct,100)}%` }} />
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+
+                    {/* Monthly Table */}
+                    <Card className="border-border overflow-hidden">
+                      <div className="px-5 py-3 bg-muted/30 border-b border-border flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4 text-primary" />
+                        <h3 className="text-sm font-semibold text-foreground">Monthly Revenue by Branch — {branchRevenue.year}</h3>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-muted/50 border-b border-border">
+                              <th className="px-4 py-3 text-left font-semibold sticky left-0 bg-muted/50">Month</th>
+                              {branchRevenue.branches.map(branch => (
+                                <th key={branch} className="px-4 py-3 text-right font-semibold whitespace-nowrap">{branch}</th>
+                              ))}
+                              <th className="px-4 py-3 text-right font-semibold text-primary">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {branchRevenue.months.map(month => {
+                              const rowTotal = branchRevenue.branches.reduce((s, b) => s + (branchRevenue.data[month]?.[b] || 0), 0);
+                              const maxBranch = branchRevenue.branches.reduce((best, b) =>
+                                (branchRevenue.data[month]?.[b] || 0) > (branchRevenue.data[month]?.[best] || 0) ? b : best,
+                                branchRevenue.branches[0]
+                              );
+                              return (
+                                <tr key={month} className="border-b border-border/50 hover:bg-muted/20">
+                                  <td className="px-4 py-3 font-medium sticky left-0 bg-background">{month}</td>
+                                  {branchRevenue.branches.map(branch => {
+                                    const val = branchRevenue.data[month]?.[branch] || 0;
+                                    const isTop = branch === maxBranch && val > 0;
+                                    return (
+                                      <td key={branch} className={`px-4 py-3 text-right ${isTop ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
+                                        {val > 0 ? `₹${val.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : <span className="text-muted-foreground/40">—</span>}
+                                        {isTop && <span className="ml-1 text-[10px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-1 rounded">★</span>}
+                                      </td>
+                                    );
+                                  })}
+                                  <td className="px-4 py-3 text-right font-bold text-primary">₹{rowTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-muted/30 font-semibold border-t-2 border-border">
+                              <td className="px-4 py-3 sticky left-0 bg-muted/30">TOTAL</td>
+                              {branchRevenue.branches.map(branch => (
+                                <td key={branch} className="px-4 py-3 text-right text-foreground">
+                                  ₹{(branchRevenue.branch_totals[branch] || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                </td>
+                              ))}
+                              <td className="px-4 py-3 text-right text-primary">
+                                ₹{Object.values(branchRevenue.branch_totals).reduce((s, v) => s + v, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </Card>
+                  </>
+                )}
+              </div>
             )}
           </>
         )}
